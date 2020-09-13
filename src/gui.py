@@ -17,7 +17,7 @@ class Ui_MainWindow(object):
         MainWindow.resize(948, 635)
         font = QtGui.QFont()
         font.setFamily("Tahoma")
-        font.setPointSize(9)
+        font.setPointSize(12)
         MainWindow.setFont(font)
         MainWindow.setLayoutDirection(QtCore.Qt.RightToLeft)
         MainWindow.setAutoFillBackground(False)
@@ -58,9 +58,9 @@ class Ui_MainWindow(object):
         self.label_11 = QtWidgets.QLabel(self.centralwidget)
         self.label_11.setObjectName("label_11")
         self.gridLayout.addWidget(self.label_11, 2, 1, 1, 1)
-        self.home3 = QtWidgets.QLineEdit(self.centralwidget)
-        self.home3.setObjectName("home3")
-        self.gridLayout.addWidget(self.home3, 7, 0, 1, 1, QtCore.Qt.AlignLeft)
+        self.work_number = QtWidgets.QLineEdit(self.centralwidget)
+        self.work_number.setObjectName("work_number")
+        self.gridLayout.addWidget(self.work_number, 7, 0, 1, 1, QtCore.Qt.AlignLeft)
         self.table = QtWidgets.QTableWidget(self.centralwidget)
         self.table.setShowGrid(True)
         self.table.setObjectName("table")
@@ -128,6 +128,7 @@ class Ui_MainWindow(object):
         self.messager.addItem("")
         self.messager.addItem("")
         self.messager.addItem("")
+        self.messager.addItem("")
         self.gridLayout.addWidget(self.messager, 13, 0, 1, 1)
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setObjectName("label_2")
@@ -180,6 +181,41 @@ class Ui_MainWindow(object):
         self.remove.clicked.connect(self.delete_button)
         self.export_2.clicked.connect(self.export)
         
+        #Regex for persion
+        persian_alpha_codepoints = '\u0621-\u0628\u062A-\u063A\u0641-\u0642\u0644-\u0648\u064E-\u0651\u0655\u067E\u0686\u0698\u06A9\u06AF\u06BE\u06CC'
+        arabic_numbers_codepoints = '\u0660-\u0669'
+        additional_arabic_characters_codepoints = '\u0629\u0643\u0649-\u064B\u064D\u06D5'
+        punctuation_marks_codepoints = '\u060C\u061B\u061F\u0640\u066A\u066B\u066C'
+        space_codepoints ='\u0020\u2000-\u200F\u2028-\u202F'
+        persian_num_codepoints = '\u06F0-\u06F9'
+        #OnlyInt part
+        self.onlyInt = QtGui.QIntValidator()
+        self.home1.setValidator(self.onlyInt)
+        self.home2.setValidator(self.onlyInt)
+        self.work_number.setValidator(self.onlyInt)
+        self.phone1.setValidator(self.onlyInt)
+        self.phone2.setValidator(self.onlyInt)
+        self.phone3.setValidator(self.onlyInt)
+        self.fax.setValidator(self.onlyInt)
+        self.phone_msg.setValidator(self.onlyInt)
+        #Only al part
+        only_english_Reg = QtCore.QRegExp('[A-Za-z0-9 ]+')
+        only_persion_Reg = QtCore.QRegExp(r"[\s,"+persian_alpha_codepoints+additional_arabic_characters_codepoints
+                     +punctuation_marks_codepoints+
+                     persian_num_codepoints+space_codepoints+arabic_numbers_codepoints+r" 0-9\-]+")
+        website_reg = QtGui.QRegExpValidator(only_english_Reg, self.website)
+        email_reg = QtGui.QRegExpValidator(only_english_Reg, self.website)
+        name_reg = QtGui.QRegExpValidator(only_persion_Reg, self.name)
+        family_reg = QtGui.QRegExpValidator(only_persion_Reg,self.family)
+        home_path_reg = QtGui.QRegExpValidator(only_persion_Reg,self.home_path)
+        work_path_reg = QtGui.QRegExpValidator(only_persion_Reg,self.workpath)
+        self.website.setValidator(website_reg)
+        self.email.setValidator(email_reg)
+        self.name.setValidator(name_reg)
+        self.family.setValidator(family_reg)
+        self.home_path.setValidator(home_path_reg)
+        self.workpath.setValidator(work_path_reg)
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "دفترچه تلفن"))
@@ -204,7 +240,7 @@ class Ui_MainWindow(object):
         item = self.table.horizontalHeaderItem(6)
         item.setText(_translate("MainWindow", "شماره تلفن خانه 2"))
         item = self.table.horizontalHeaderItem(7)
-        item.setText(_translate("MainWindow", "شماره تلفن خانه 3"))
+        item.setText(_translate("MainWindow", "شماره محل کار"))
         item = self.table.horizontalHeaderItem(8)
         item.setText(_translate("MainWindow", "فکس"))
         item = self.table.horizontalHeaderItem(9)
@@ -220,12 +256,13 @@ class Ui_MainWindow(object):
         item = self.table.horizontalHeaderItem(14)
         item.setText(_translate("MainWindow", "پیام رسان مجازی"))
         self.label_7.setText(_translate("MainWindow", "شماره تلفن خانه 2"))
-        self.label_6.setText(_translate("MainWindow", "شماره تلفن خانه 3"))
+        self.label_6.setText(_translate("MainWindow", "شماره محل کار"))
         self.label_5.setText(_translate("MainWindow", "فکس"))
         self.messager.setItemText(0, _translate("MainWindow", "ایتا"))
         self.messager.setItemText(1, _translate("MainWindow", "سروش"))
         self.messager.setItemText(2, _translate("MainWindow", "واتس آپ"))
         self.messager.setItemText(3, _translate("MainWindow", "تلگرام"))
+        self.messager.setItemText(4, _translate("MainWindow", "دیگر پیام رسان ها"))
         self.label_2.setText(_translate("MainWindow", "پست الکترونیکی"))
         self.remove.setText(_translate("MainWindow", "حدف"))
         self.search.setText(_translate("MainWindow", "جستجو"))

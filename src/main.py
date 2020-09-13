@@ -64,7 +64,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             'phone3' : self.phone3.text(),
             'home1' : self.home1.text(),
             'home2' : self.home2.text(),
-            'home3' : self.home3.text(),
+            'work_number' : self.work_number.text(),
             'home_path' : self.home_path.text(),
             'fax' : self.fax.text(),
             'website' : self.website.text(),
@@ -93,7 +93,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             'phone3' : self.phone3.text(),
             'home1' : self.home1.text(),
             'home2' : self.home2.text(),
-            'home3' : self.home3.text(),
+            'work_number' : self.work_number.text(),
             'home_path' : self.home_path.text(),
             'fax' : self.fax.text(),
             'website' : self.website.text(),
@@ -111,7 +111,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         phone3 LIKE '%{4}%' AND
         home1 LIKE '%{5}%' AND
         home2 LIKE '%{6}%' AND
-        home3 LIKE '%{7}%' AND
+        work_number LIKE '%{7}%' AND
         home_path LIKE '%{8}%' AND
         fax LIKE '%{9}%' AND
         website LIKE '%{10}%' AND
@@ -127,7 +127,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             datas['phone3'],
             datas['home1'],
             datas['home2'],
-            datas['home3'],
+            datas['work_number'],
             datas['home_path'],
             datas['fax'],
             datas['website'],
@@ -149,7 +149,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             'phone3' : self.phone3.text(),
             'home1' : self.home1.text(),
             'home2' : self.home2.text(),
-            'home3' : self.home3.text(),
+            'work_number' : self.work_number.text(),
             'home_path' : self.home_path.text(),
             'fax' : self.fax.text(),
             'website' : self.website.text(),
@@ -167,7 +167,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         phone3 LIKE '%{4}%' AND
         home1 LIKE '%{5}%' AND
         home2 LIKE '%{6}%' AND
-        home3 LIKE '%{7}%' AND
+        work_number LIKE '%{7}%' AND
         home_path LIKE '%{8}%' AND
         fax LIKE '%{9}%' AND
         website LIKE '%{10}%' AND
@@ -183,7 +183,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             datas['phone3'],
             datas['home1'],
             datas['home2'],
-            datas['home3'],
+            datas['work_number'],
             datas['home_path'],
             datas['fax'],
             datas['website'],
@@ -220,7 +220,7 @@ def CreateTable():
             phone3 TEXT,
             home1 TEXT,
             home2 TEXT,
-            home3 TEXT,
+            work_number TEXT,
             home_path TEXT,
             fax TEXT,
             website TEXT,
@@ -240,7 +240,7 @@ def LoadData(sql):
 def AddData(values):
     cur = con.cursor()
     cur.execute('''
-    INSERT INTO `phones`(name,family,phone1,phone2,phone3,home1,home2,home3,home_path,fax,website,email,messager,phone_msg,workpath)
+    INSERT INTO `phones`(name,family,phone1,phone2,phone3,home1,home2,work_number,home_path,fax,website,email,messager,phone_msg,workpath)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ''',values)
     con.commit()
