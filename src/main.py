@@ -12,6 +12,38 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.setupUi(self)
         self.load_table('SELECT * FROM phones')
 
+    def save(self):
+        self.clear_table()
+        self.load_table('SELECT * FROM phones')
+        cur = con.cursor()
+        for i in range(self.table.rowCount()):
+            column = list()
+            for j in range(self.table.columnCount()):
+                column.append(self.table.model().data(self.table.model().index(i, j)))
+            
+            sql = """UPDATE Phones 
+            SET name = '%s',
+            family = '%s',
+            phone1 = '%s',
+            phone2 = '%s',
+            phone3 = '%s',
+            home1 = '%s',
+            home2 = '%s',
+            work_number = '%s',
+            home_path = '%s',
+            fax = '%s',
+            website = '%s',
+            email = '%s',
+            messager = '%s',
+            phone_msg = '%s',
+            workpath = '%s'
+            WHERE id = """ % tuple(column)
+            sql += str(i + 1) + ";"
+            cur.execute(sql)
+            con.commit()
+            self.clear_table()
+            self.load_table('SELECT * FROM Phones')
+ 
     def clear_table(self):
         self.table.setRowCount(0)
 
@@ -22,6 +54,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             self.table.insertRow(row_pos)
             for i, column in enumerate(row, 0):
                 self.table.setItem(row_pos, i, QtWidgets.QTableWidgetItem(column))
+        self.table.resizeColumnsToContents()
 
     def error(self, text):
         msg = QMessageBox()
@@ -47,10 +80,16 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             fileName += '.xlsx'
             workbook = xlsxwriter.Workbook(fileName)
             worksheet = workbook.add_worksheet()
+
+            for i in range(self.table.columnCount()):
+                    text = self.table.horizontalHeaderItem(i).text()
+                    worksheet.write(0, i,text)
+
             for i in range(self.table.columnCount()):
                 for j in range(self.table.rowCount()):
                     text = self.table.item(j, i).text()
-                    worksheet.write(j, i,text)
+                    worksheet.write(j + 1, i,text)
+            
             workbook.close()
             self.info('خروجی با موفقیت ایجاد شد !')
     
@@ -141,7 +180,6 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     
     @pyqtSlot()
     def delete_button(self):
-        sql = "DELETE FROM Phones WHERE"
         for index in sorted(self.table.selectionModel().selectedRows()):
             row = index.row()
             sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%'".format(
@@ -178,7 +216,8 @@ def CreateTable():
             email TEXT,
             messager TEXT,
             phone_msg TEXT,
-            workpath TEXT
+            workpath TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT
         )
         ''')
     return True
