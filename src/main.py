@@ -141,69 +141,20 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     
     @pyqtSlot()
     def delete_button(self):
-        datas = {
-            'name' : self.name.text(),
-            'family' : self.family.text(),
-            'phone1' : self.phone1.text(),
-            'phone2' : self.phone2.text(),
-            'phone3' : self.phone3.text(),
-            'home1' : self.home1.text(),
-            'home2' : self.home2.text(),
-            'work_number' : self.work_number.text(),
-            'home_path' : self.home_path.text(),
-            'fax' : self.fax.text(),
-            'website' : self.website.text(),
-            'email' : self.email.text(),
-            'messager' : self.messager.currentText(),
-            'phone_msg' : self.phone_msg.text(),
-            'workpath' : self.workpath.text()
-        }
-        sql = """
-        DELETE FROM Phones WHERE 
-        name LIKE '%{0}%' AND 
-        family LIKE '%{1}%' AND 
-        phone1 LIKE '%{2}%' AND 
-        phone2 LIKE '%{3}%' AND
-        phone3 LIKE '%{4}%' AND
-        home1 LIKE '%{5}%' AND
-        home2 LIKE '%{6}%' AND
-        work_number LIKE '%{7}%' AND
-        home_path LIKE '%{8}%' AND
-        fax LIKE '%{9}%' AND
-        website LIKE '%{10}%' AND
-        email LIKE '%{11}%' AND
-        messager LIKE '%{12}%' AND
-        phone_msg LIKE '%{13}%' AND
-        workpath LIKE '%{14}%'
-        """.format(
-            datas['name'],
-            datas['family'],
-            datas['phone1'],
-            datas['phone2'],
-            datas['phone3'],
-            datas['home1'],
-            datas['home2'],
-            datas['work_number'],
-            datas['home_path'],
-            datas['fax'],
-            datas['website'],
-            datas['email'],
-            datas['messager'],
-            datas['phone_msg'],
-            datas['workpath']
-        )
-        if datas['name']:
+        sql = "DELETE FROM Phones WHERE"
+        for index in sorted(self.table.selectionModel().selectedRows()):
+            row = index.row()
+            sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%'".format(
+                self.table.model().data(self.table.model().index(row, 0)),
+                self.table.model().data(self.table.model().index(row, 1)),
+                self.table.model().data(self.table.model().index(row, 2))
+            )
             cur = con.cursor()
             cur.execute(sql)
-            if cur.rowcount <= 0:
-                self.error('کاربری با این مشخصات پیدا نشد !')
-            else:
-                self.info('کاربر با موفقیت حذف شد !')
-                con.commit()
-                self.clear_table()
-                self.load_table('SELECT * FROM phones')
-        else:
-            self.error('لطفا فیلد نام را پر کنید !')
+        con.commit()
+        self.clear_table()
+        self.load_table('SELECT * FROM Phones')
+    
     @pyqtSlot()
     def export(self):
         self.savefile()
