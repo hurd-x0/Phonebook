@@ -188,33 +188,34 @@ class Ui_MainWindow(object):
         punctuation_marks_codepoints = '\u060C\u061B\u061F\u0640\u066A\u066B\u066C'
         space_codepoints ='\u0020\u2000-\u200F\u2028-\u202F'
         persian_num_codepoints = '\u06F0-\u06F9'
+        
         #OnlyInt part
-        self.onlyInt = QtGui.QIntValidator()
-        self.home1.setValidator(self.onlyInt)
-        self.home2.setValidator(self.onlyInt)
-        self.work_number.setValidator(self.onlyInt)
-        self.phone1.setValidator(self.onlyInt)
-        self.phone2.setValidator(self.onlyInt)
-        self.phone3.setValidator(self.onlyInt)
-        self.fax.setValidator(self.onlyInt)
-        self.phone_msg.setValidator(self.onlyInt)
+        only_int = QtCore.QRegExp("[0-9" + persian_num_codepoints + arabic_numbers_codepoints + "]+")
+        only_int_reg = QtGui.QRegExpValidator(only_int)
+        self.home1.setValidator(only_int_reg)
+        self.home2.setValidator(only_int_reg)
+        self.work_number.setValidator(only_int_reg)
+        self.phone1.setValidator(only_int_reg)
+        self.phone2.setValidator(only_int_reg)
+        self.phone3.setValidator(only_int_reg)
+        self.fax.setValidator(only_int_reg)
+        self.phone_msg.setValidator(only_int_reg)
+        
         #Only al part
-        only_english_Reg = QtCore.QRegExp('[A-Za-z0-9 ]+')
-        only_persion_Reg = QtCore.QRegExp(r"[\s,"+persian_alpha_codepoints+additional_arabic_characters_codepoints
-                     +punctuation_marks_codepoints+
-                     persian_num_codepoints+space_codepoints+arabic_numbers_codepoints+r" 0-9\-]+")
-        website_reg = QtGui.QRegExpValidator(only_english_Reg, self.website)
-        email_reg = QtGui.QRegExpValidator(only_english_Reg, self.website)
-        name_reg = QtGui.QRegExpValidator(only_persion_Reg, self.name)
-        family_reg = QtGui.QRegExpValidator(only_persion_Reg,self.family)
-        home_path_reg = QtGui.QRegExpValidator(only_persion_Reg,self.home_path)
-        work_path_reg = QtGui.QRegExpValidator(only_persion_Reg,self.workpath)
-        self.website.setValidator(website_reg)
-        self.email.setValidator(email_reg)
-        self.name.setValidator(name_reg)
-        self.family.setValidator(family_reg)
-        self.home_path.setValidator(home_path_reg)
-        self.workpath.setValidator(work_path_reg)
+        only_english = QtCore.QRegExp('[A-Za-z0-9 ]+')
+        only_persian = QtCore.QRegExp(r"[\s,"+persian_alpha_codepoints+additional_arabic_characters_codepoints
+                     +punctuation_marks_codepoints+space_codepoints+arabic_numbers_codepoints+r" 0-9\-]+")
+        
+        only_english_reg = QtGui.QRegExpValidator(only_english)
+        only_persian_reg = QtGui.QRegExpValidator(only_persian)
+        
+        self.website.setValidator(only_english_reg)
+        self.email.setValidator(only_english_reg)
+
+        self.name.setValidator(only_persian_reg)
+        self.family.setValidator(only_persian_reg)
+        self.home_path.setValidator(only_persian_reg)
+        self.workpath.setValidator(only_persian_reg)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
