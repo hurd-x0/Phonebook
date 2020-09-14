@@ -173,8 +173,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)        
         #Buttons
         self.add.clicked.connect(self.add_button)
         self.search.clicked.connect(self.search_button)
@@ -216,6 +215,17 @@ class Ui_MainWindow(object):
         self.family.setValidator(only_persian_reg)
         self.home_path.setValidator(only_persian_reg)
         self.workpath.setValidator(only_persian_reg)
+
+        exitAction = QtWidgets.QAction('خروج', self)
+        exitAction.triggered.connect(exit)
+        
+        saveAction = QtWidgets.QAction('ذخیره', self)
+        saveAction.triggered.connect(self.save)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('فایل')
+        fileMenu.addAction(exitAction)
+        fileMenu.addAction(saveAction)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
