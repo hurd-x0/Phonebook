@@ -13,8 +13,6 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.load_table('SELECT * FROM phones')
 
     def save(self):
-        self.clear_table()
-        self.load_table('SELECT * FROM phones')
         cur = con.cursor()
         for i in range(self.table.rowCount()):
             column = list()
