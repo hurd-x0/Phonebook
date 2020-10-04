@@ -18,7 +18,6 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             column = list()
             for j in range(self.table.columnCount()):
                 column.append(self.table.model().data(self.table.model().index(i, j)))
-            
             sql = """UPDATE Phones 
             SET name = '%s',
             family = '%s',
@@ -35,8 +34,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             messager = '%s',
             phone_msg = '%s',
             workpath = '%s'
-            WHERE id = """ % tuple(column)
-            sql += str(i + 1) + ";"
+            WHERE id = %s;""" % tuple(column)
             cur.execute(sql)
             con.commit()
             self.clear_table()
@@ -51,7 +49,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
             for i, column in enumerate(row, 0):
-                self.table.setItem(row_pos, i, QtWidgets.QTableWidgetItem(column))
+                self.table.setItem(row_pos, i, QtWidgets.QTableWidgetItem(str(column)))
         self.table.resizeColumnsToContents()
 
     def error(self, text):
@@ -78,7 +76,6 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             fileName += '.xlsx'
             workbook = xlsxwriter.Workbook(fileName)
             worksheet = workbook.add_worksheet()
-
             for i in range(self.table.columnCount()):
                     text = self.table.horizontalHeaderItem(i).text()
                     worksheet.write(0, i,text)
@@ -180,10 +177,11 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     def delete_button(self):
         for index in sorted(self.table.selectionModel().selectedRows()):
             row = index.row()
-            sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%'".format(
+            sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%' AND id = '{3}'".format(
                 self.table.model().data(self.table.model().index(row, 0)),
                 self.table.model().data(self.table.model().index(row, 1)),
-                self.table.model().data(self.table.model().index(row, 2))
+                self.table.model().data(self.table.model().index(row, 2)),
+                self.table.model().data(self.table.model().index(row, 15))
             )
             cur = con.cursor()
             cur.execute(sql)
