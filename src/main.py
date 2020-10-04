@@ -37,8 +37,8 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             WHERE id = %s;""" % tuple(column)
             cur.execute(sql)
             con.commit()
-            self.clear_table()
-            self.load_table('SELECT * FROM Phones')
+        self.clear_table()
+        self.load_table('SELECT * FROM Phones')
  
     def clear_table(self):
         self.table.setRowCount(0)
