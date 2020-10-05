@@ -16,7 +16,7 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(948, 635)
         font = QtGui.QFont()
-        font.setFamily("Sahel")
+        font.setFamily("Tahoma")
         font.setPointSize(9)
         MainWindow.setFont(font)
         MainWindow.setLayoutDirection(QtCore.Qt.RightToLeft)
