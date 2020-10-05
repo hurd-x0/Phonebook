@@ -205,7 +205,7 @@ class Ui_MainWindow(object):
         #Only al part
         only_english = QtCore.QRegExp('[A-Za-z0-9 ]+')
         only_persian = QtCore.QRegExp(r"[\s,"+persian_alpha_codepoints+additional_arabic_characters_codepoints
-                     +punctuation_marks_codepoints+space_codepoints+arabic_numbers_codepoints+r" 0-9\-]+")
+                     +punctuation_marks_codepoints+space_codepoints+arabic_numbers_codepoints+persian_num_codepoints+r" 0-9\-]+")
         
         only_english_reg = QtGui.QRegExpValidator(only_english)
         only_persian_reg = QtGui.QRegExpValidator(only_persian)
@@ -215,6 +215,7 @@ class Ui_MainWindow(object):
 
         self.name.setValidator(only_persian_reg)
         self.family.setValidator(only_persian_reg)
+        
         self.home_path.setValidator(only_persian_reg)
         self.workpath.setValidator(only_persian_reg)
 
