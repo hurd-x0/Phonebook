@@ -1,505 +1,322 @@
-import gui
-import sqlite3 as db
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMessageBox, QFileDialog
-from PyQt5.QtCore import pyqtSlot
-import xlsxwriter
+import cherrypy
+import sqlite3
+import hashlib
+import chevron
+import random
+import string
+import io
+import base64
+import os
+import os.path
+import html
+import time
+from markdown import markdown
+from captcha.image import ImageCaptcha
 
-class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
+DB_NAME = './private/database.sqlite3'
 
-    def __init__(self, parent=None):
-        super(App, self).__init__(parent)
-        self.setupUi(self)
-        self.load_table('SELECT * FROM phones')
+def hasher(text):
+    return hashlib.sha512(text.encode()).hexdigest()
 
-    def save(self):
+def gen_captcha():
+    captcha_output = ''.join(random.sample(string.hexdigits, 4)).lower()
+    image = ImageCaptcha()
+    file = io.BytesIO()
+    image.write(captcha_output,file)
+    byte = file.getvalue()
+    base = base64.b64encode(byte)
+    return (captcha_output,base.decode("utf-8"))
+
+
+
+
+def RenderMenus():
+    menus = []
+    with sqlite3.connect(DB_NAME) as con:
         cur = con.cursor()
-        for i in range(self.table.rowCount()):
-            column = list()
-            for j in range(self.table.columnCount()):
-                column.append(self.table.model().data(self.table.model().index(i, j)))
-            sql = """UPDATE Phones 
-            SET name = '%s',
-            family = '%s',
-            phone1 = '%s',
-            phone2 = '%s',
-            phone3 = '%s',
-            home1 = '%s',
-            home2 = '%s',
-            work_number = '%s',
-            home_path = '%s',
-            fax = '%s',
-            website = '%s',
-            email = '%s',
-            messager = '%s',
-            phone_msg = '%s',
-            workpath = '%s'
-            WHERE id = %s;""" % tuple(column)
-            cur.execute(sql)
-            con.commit()
-        self.clear_table()
-        self.load_table('SELECT * FROM Phones')
- 
-    def clear_table(self):
-        self.table.setRowCount(0)
+        cur.execute('SELECT * FROM menu')
+        for row in cur.fetchall():
+            menus.append({'text':row[1],'link':row[2]})
+        return menus
 
-    def clear_infos(self):
-        self.workpath.setText("")
-        self.work_number.setText("")
-        self.home1.setText("")
-        self.home2.setText("")
-        self.home_path.setText("")
-        self.phone1.setText("")
-        self.phone2.setText("")
-        self.phone3.setText("")
-        self.phone_msg.setText("")
-        self.family.setText("")
-        self.name.setText("")
-        self.fax.setText("")
-
-    def load_table(self,sql):
-        output = LoadData(sql)
-        for row in output:
-            row_pos = self.table.rowCount()
-            self.table.insertRow(row_pos)
-            for i, column in enumerate(row, 0):
-                self.table.setItem(row_pos, i, QtWidgets.QTableWidgetItem(str(column)))
-        self.table.resizeColumnsToContents()
-
-    def error(self, text):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("مشکل")
-        msg.setInformativeText(text)
-        msg.setWindowTitle("مشکل")
-        msg.exec_()
-    
-    def info(self, text):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("اطالاعات")
-        msg.setInformativeText(text)
-        msg.setWindowTitle("اطالاعات")
-        msg.exec_()
-    
-    def savefile(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self,"Export", "","Xls Files (*.xlsx)", options=options)
-        if fileName:
-            fileName += '.xlsx'
-            workbook = xlsxwriter.Workbook(fileName)
-            worksheet = workbook.add_worksheet()
-            for i in range(self.table.columnCount()):
-                    text = self.table.horizontalHeaderItem(i).text()
-                    worksheet.write(0, i,text)
-
-            for i in range(self.table.columnCount()):
-                for j in range(self.table.rowCount()):
-                    text = self.table.item(j, i).text()
-                    worksheet.write(j + 1, i,text)
-            
-            workbook.close()
-            self.info('خروجی با موفقیت ایجاد شد !')
-    
-    @pyqtSlot()
-    def add_button(self):
-        datas = {
-            'name' : self.name.text(),
-            'family' : self.family.text(),
-            'phone1' : self.phone1.text(),
-            'phone2' : self.phone2.text(),
-            'phone3' : self.phone3.text(),
-            'home1' : self.home1.text(),
-            'home2' : self.home2.text(),
-            'work_number' : self.work_number.text(),
-            'home_path' : self.home_path.text(),
-            'fax' : self.fax.text(),
-            'website' : self.website.text(),
-            'email' : self.email.text(),
-            'messager' : self.messager.currentText(),
-            'phone_msg' : self.phone_msg.text(),
-            'workpath' : self.workpath.text()
-        }
-        if datas['name'] and datas['family']:
+def RenderPosts(limit = -1,post_id = -1):
+    posts = []
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        if (limit > 0.1) and (post_id > 0):
             try:
-                AddData(list(datas.values()))
-                self.clear_table()
-                self.load_table('SELECT * FROM phones')
-                self.clear_infos()
-            except db.IntegrityError:
-                self.error('اطالاعات مورد نظر در پایگاه داده موجود است')
+                cur.execute('SELECT * FROM posts WHERE id = ? LIMIT ?',(post_id,limit,))
+            except:
+                return False
+        
+        elif (limit == 0.1) and (post_id > 0):
+            try:
+                cur.execute('SELECT * FROM posts WHERE id = ?',(post_id,))
+            except:
+                return False
+        
+        elif limit == 0.1:
+            cur.execute('SELECT * FROM posts')
+        
+        elif limit > 0:
+            cur.execute('SELECT * FROM posts LIMIT ?',(limit,))
+        
         else:
-            self.error('لطفا نام و نام خانوادگی را پرکنید')
+            cur.execute('SELECT * FROM posts')
+        
+        for row in cur.fetchall():
+            posts.append({'user':row[1],'title':row[3],'content':row[2],'date':row[4],'post_id':row[0]})
     
-    @pyqtSlot()
-    def search_button(self):
-        datas = {
-            'name' : self.name.text(),
-            'family' : self.family.text(),
-            'phone1' : self.phone1.text(),
-            'phone2' : self.phone2.text(),
-            'phone3' : self.phone3.text(),
-            'home1' : self.home1.text(),
-            'home2' : self.home2.text(),
-            'work_number' : self.work_number.text(),
-            'home_path' : self.home_path.text(),
-            'fax' : self.fax.text(),
-            'website' : self.website.text(),
-            'email' : self.email.text(),
-            'messager' : self.messager.currentText(),
-            'phone_msg' : self.phone_msg.text(),
-            'workpath' : self.workpath.text()
-        }
-        sql = """
-        SELECT * FROM Phones WHERE 
-        name LIKE '%{0}%' AND 
-        family LIKE '%{1}%' AND 
-        phone1 LIKE '%{2}%' AND 
-        phone2 LIKE '%{3}%' AND
-        phone3 LIKE '%{4}%' AND
-        home1 LIKE '%{5}%' AND
-        home2 LIKE '%{6}%' AND
-        work_number LIKE '%{7}%' AND
-        home_path LIKE '%{8}%' AND
-        fax LIKE '%{9}%' AND
-        website LIKE '%{10}%' AND
-        email LIKE '%{11}%' AND
-        messager LIKE '%{12}%' AND
-        phone_msg LIKE '%{13}%' AND
-        workpath LIKE '%{14}%'
-        """.format(
-            datas['name'],
-            datas['family'],
-            datas['phone1'],
-            datas['phone2'],
-            datas['phone3'],
-            datas['home1'],
-            datas['home2'],
-            datas['work_number'],
-            datas['home_path'],
-            datas['fax'],
-            datas['website'],
-            datas['email'],
-            datas['messager'],
-            datas['phone_msg'],
-            datas['workpath']
-        )
-        self.clear_table()
-        self.load_table(sql)
-    
-    @pyqtSlot()
-    def delete_button(self):
-        for index in sorted(self.table.selectionModel().selectedRows()):
-            row = index.row()
-            sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%' AND id = '{3}'".format(
-                self.table.model().data(self.table.model().index(row, 0)),
-                self.table.model().data(self.table.model().index(row, 1)),
-                self.table.model().data(self.table.model().index(row, 2)),
-                self.table.model().data(self.table.model().index(row, 15))
-            )
-            cur = con.cursor()
-            cur.execute(sql)
+    posts.reverse()
+    return posts
+
+def RenderAllows(limit = -1):
+    users = []
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        if limit > 0:
+            cur.execute('SELECT * FROM allow LIMIT ?',(limit,))
+        else:
+            cur.execute('SELECT * FROM allow')
+        for row in cur.fetchall():
+            users.append({'username':row[1]})
+    return users
+
+
+
+
+def CheckUser(password,username):
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        cur.execute('SELECT * FROM users WHERE password = ? AND username = ?',(password,username,))
+        data = cur.fetchall()
+        if data:
+            return data[0][3]
+        else:
+            return False
+
+def IsAllowed(username):
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        cur.execute('SELECT * FROM allow WHERE username = ?',(username,))
+        if cur.fetchall():
+            return True
+        else:
+            return False
+
+
+
+
+def InsertPost(title,nickname,content):
+    with sqlite3.connect(DB_NAME) as con:
+        content = html.escape(content)
+        content = markdown(content)
+        date = time.ctime()
+        cur = con.cursor()
+        cur.execute('INSERT INTO posts(title,nickname,text,date) VALUES (?,?,?,?)',(title,nickname,content,date,))
         con.commit()
-        self.clear_table()
-        self.load_table('SELECT * FROM Phones')
+        return True
+
+def InsertUser(username,password,nickname):
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        try:
+            cur.execute('INSERT INTO users(username,password,nickname) VALUES (?,?,?)',(username,password,nickname))
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+def AllowUser(username):
+    with sqlite3.connect(DB_NAME) as con:
+        cur = con.cursor()
+        try:
+            cur.execute('INSERT INTO allow(username) VALUES(?)', (username,) )
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+
+@cherrypy.tools.register('before_handler')
+def auth():
+    if cherrypy.session.get("islogin"):
+        return True
+    else:
+        raise cherrypy.HTTPRedirect("/login")
+
+
+
+class App(object):
+    @cherrypy.expose
+    def index(self):
+        args = {
+            'menu' : RenderMenus(),
+            'posts' : RenderPosts(10)
+        }
+        with open('pages/index.html') as f:
+            return chevron.render(f,args)
     
-    @pyqtSlot()
-    def export(self):
-        self.savefile()
+    @cherrypy.expose
+    def archive(self,post_id=-1):
+        post_id = int(post_id)
+        args = {
+            'menu' : RenderMenus()
+        }
+        response = RenderPosts(0.1,post_id)
+        if response:
+            args['posts'] = response
+        else:
+            args['show_message'] = True
+            args['message'] = 'No posts found :('
+        
+        with open('pages/archive.html') as f:
+            return chevron.render(f,args)
 
-def CreateTable():
-    global con
-    cur = con.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS `phones`(
-            name TEXT,
-            family TEXT,
-            phone1 TEXT,
-            phone2 TEXT,
-            phone3 TEXT,
-            home1 TEXT,
-            home2 TEXT,
-            work_number TEXT,
-            home_path TEXT,
-            fax TEXT,
-            website TEXT,
-            email TEXT,
-            messager TEXT,
-            phone_msg TEXT,
-            workpath TEXT,
-            id INTEGER PRIMARY KEY AUTOINCREMENT
-        )
-        ''')
-    return True
+    @cherrypy.expose
+    def login(self,password = "",username = "",captcha = ""):
+        if cherrypy.session.get("islogin"):
+            raise cherrypy.HTTPRedirect('/panel')
 
-def LoadData(sql):
-    cur = con.cursor()
-    cur.execute(sql)
-    return cur.fetchall()
+        args = {
+                'menu' : RenderMenus(),
+                'message' : '',
+                'show_message' : False,
+                'form' : True,
+                'base64' : ''
+        }
 
-def AddData(values):
-    cur = con.cursor()
-    cur.execute('''
-    INSERT INTO `phones`(name,family,phone1,phone2,phone3,home1,home2,work_number,home_path,fax,website,email,messager,phone_msg,workpath)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ''',values)
-    con.commit()
-    return True
+        if password and username and captcha:
+            args['show_message'] = True
+            if cherrypy.session.get('captcha') == captcha:
+                if CheckUser(hasher(password),username):
+                    cherrypy.session['islogin'] = True
+                    cherrypy.session['nickname'] = CheckUser(hasher(password),username)
+                    raise cherrypy.HTTPRedirect('/panel')
+                else:
+                    args['message'] = 'Please check your password or username'
+                    system_captcha = gen_captcha()
+                    cherrypy.session['captcha'] = system_captcha[0]
+                    args['base64'] = system_captcha[1]
+            else:
+                args['message'] = 'Please enter the captcha correctly'
+                system_captcha = gen_captcha()
+                cherrypy.session['captcha'] = system_captcha[0]
+                args['base64'] = system_captcha[1]
+        else:
+            system_captcha = gen_captcha()
+            cherrypy.session['captcha'] = system_captcha[0]
+            args['base64'] = system_captcha[1]
+
+        with open('pages/login.html') as f:
+                return chevron.render(f,args)
+
+    @cherrypy.expose
+    def signin(self,password = "",username = "",nickname = "",captcha = ""):
+
+        if cherrypy.session.get("islogin"):
+            raise cherrypy.HTTPRedirect('/panel')
+
+        args = {
+                'menu' : RenderMenus(),
+                'message' : '',
+                'show_message' : False,
+                'form' : True,
+                'base64' : ''
+        }
+
+        if password and username and captcha:
+            args['show_message'] = True
+            if cherrypy.session.get('captcha') == captcha:
+                if IsAllowed(username):
+                    if InsertUser(username,hasher(password),nickname):
+                        args['message'] = 'SignIn successfully!'
+                        system_captcha = gen_captcha()
+                        cherrypy.session['captcha'] = system_captcha[0]
+                        args['base64'] = system_captcha[1]
+                    else:
+                        args['message'] = 'A user with same username exists, Please Try again!'
+                        system_captcha = gen_captcha()
+                        cherrypy.session['captcha'] = system_captcha[0]
+                        args['base64'] = system_captcha[1]
+                else:
+                    args['message'] = 'You are not allowed!'
+                    system_captcha = gen_captcha()
+                    cherrypy.session['captcha'] = system_captcha[0]
+                    args['base64'] = system_captcha[1]
+            else:
+                args['message'] = 'Please enter the captcha correctly'
+                system_captcha = gen_captcha()
+                cherrypy.session['captcha'] = system_captcha[0]
+                args['base64'] = system_captcha[1]
+        else:
+            system_captcha = gen_captcha()
+            cherrypy.session['captcha'] = system_captcha[0]
+            args['base64'] = system_captcha[1]
+
+        with open('pages/signin.html') as f:
+                return chevron.render(f,args)
+
+    @cherrypy.expose
+    @cherrypy.tools.auth()
+    def panel(self,title = "",content = ""):
+        args = {
+            'menu' : RenderMenus(),
+            'show_message' : False,
+            'message': ''
+        }
+        args['menu'].append({'link':'/logout','text':'Logout'})
+        args['menu'].append({'link':'/allow','text':'Allow users'})
+        if title and content:
+            args['show_message'] = True
+            if InsertPost(title,cherrypy.session.get("nickname"),content):
+                args['message'] = 'Post submited !'
+        else:
+            args['show_message'] = False
+        
+        with open('pages/panel.html') as f:
+            return chevron.render(f,args)
+    
+    @cherrypy.expose
+    @cherrypy.tools.auth()
+    def allow(self,username=""):
+        args = {
+            'menu' : RenderMenus(),
+            'show_message' : False,
+            'message': '',
+            'allowes' : RenderAllows()
+        }
+        args['menu'].append({'link':'/logout','text':'Logout'})
+        args['menu'].append({'link':'/allow','text':'Allow users'})
+        if username:
+            args['show_message'] = True
+            if AllowUser(username):
+                args['message'] = 'User allowed to signin now !'
+            else:
+                args['message'] = 'User is allready allowed to signin !'
+        
+        with open('pages/allow.html') as f:
+            return chevron.render(f,args)
+
+    @cherrypy.expose
+    @cherrypy.tools.auth()
+    def logout(self):
+        cherrypy.session['islogin'] = False
+        cherrypy.session['nickname'] = ""
+        raise cherrypy.HTTPRedirect('/login')
+
 
 def main():
-    global con
-    con = db.connect('phones.sqlite3')
-    CreateTable()
-    mainApp = QApplication(['دفترچه تلفن'])
-    mainWindow = App()
-    mainWindow.show()
-    mainApp.exec_()
-    con.close()
-
-if __name__ == "__main__" : main()
-import gui
-import sqlite3 as db
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMessageBox, QFileDialog
-from PyQt5.QtCore import pyqtSlot
-import xlsxwriter
-
-class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
-
-    def __init__(self, parent=None):
-        super(App, self).__init__(parent)
-        self.setupUi(self)
-        self.load_table('SELECT * FROM phones')
-
-    def save(self):
-        cur = con.cursor()
-        for i in range(self.table.rowCount()):
-            column = list()
-            for j in range(self.table.columnCount()):
-                column.append(self.table.model().data(self.table.model().index(i, j)))
-            sql = """UPDATE Phones 
-            SET name = '%s',
-            family = '%s',
-            phone1 = '%s',
-            phone2 = '%s',
-            phone3 = '%s',
-            home1 = '%s',
-            home2 = '%s',
-            work_number = '%s',
-            home_path = '%s',
-            fax = '%s',
-            website = '%s',
-            email = '%s',
-            messager = '%s',
-            phone_msg = '%s',
-            workpath = '%s'
-            WHERE id = %s;""" % tuple(column)
-            cur.execute(sql)
-            con.commit()
-        self.clear_table()
-        self.load_table('SELECT * FROM Phones')
- 
-    def clear_table(self):
-        self.table.setRowCount(0)
-
-    def load_table(self,sql):
-        output = LoadData(sql)
-        for row in output:
-            row_pos = self.table.rowCount()
-            self.table.insertRow(row_pos)
-            for i, column in enumerate(row, 0):
-                self.table.setItem(row_pos, i, QtWidgets.QTableWidgetItem(str(column)))
-        self.table.resizeColumnsToContents()
-
-    def error(self, text):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("مشکل")
-        msg.setInformativeText(text)
-        msg.setWindowTitle("مشکل")
-        msg.exec_()
-    
-    def info(self, text):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("اطالاعات")
-        msg.setInformativeText(text)
-        msg.setWindowTitle("اطالاعات")
-        msg.exec_()
-    
-    def savefile(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self,"Export", "","Xls Files (*.xlsx)", options=options)
-        if fileName:
-            fileName += '.xlsx'
-            workbook = xlsxwriter.Workbook(fileName)
-            worksheet = workbook.add_worksheet()
-            for i in range(self.table.columnCount()):
-                    text = self.table.horizontalHeaderItem(i).text()
-                    worksheet.write(0, i,text)
-
-            for i in range(self.table.columnCount()):
-                for j in range(self.table.rowCount()):
-                    text = self.table.item(j, i).text()
-                    worksheet.write(j + 1, i,text)
-            
-            workbook.close()
-            self.info('خروجی با موفقیت ایجاد شد !')
-    
-    @pyqtSlot()
-    def add_button(self):
-        datas = {
-            'name' : self.name.text(),
-            'family' : self.family.text(),
-            'phone1' : self.phone1.text(),
-            'phone2' : self.phone2.text(),
-            'phone3' : self.phone3.text(),
-            'home1' : self.home1.text(),
-            'home2' : self.home2.text(),
-            'work_number' : self.work_number.text(),
-            'home_path' : self.home_path.text(),
-            'fax' : self.fax.text(),
-            'website' : self.website.text(),
-            'email' : self.email.text(),
-            'messager' : self.messager.currentText(),
-            'phone_msg' : self.phone_msg.text(),
-            'workpath' : self.workpath.text()
+    conf = {
+        '/': {
+            'tools.sessions.on': True,
+            'tools.staticdir.root': os.path.abspath(os.getcwd())
+        },
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': './static'
         }
-        if datas['name'] and datas['family']:
-            try:
-                AddData(list(datas.values()))
-                self.clear_table()
-                self.load_table('SELECT * FROM phones')
-            except db.IntegrityError:
-                self.error('اطالاعات مورد نظر در پایگاه داده موجود است')
-        else:
-            self.error('لطفا نام و نام خانوادگی را پرکنید')
-    
-    @pyqtSlot()
-    def search_button(self):
-        datas = {
-            'name' : self.name.text(),
-            'family' : self.family.text(),
-            'phone1' : self.phone1.text(),
-            'phone2' : self.phone2.text(),
-            'phone3' : self.phone3.text(),
-            'home1' : self.home1.text(),
-            'home2' : self.home2.text(),
-            'work_number' : self.work_number.text(),
-            'home_path' : self.home_path.text(),
-            'fax' : self.fax.text(),
-            'website' : self.website.text(),
-            'email' : self.email.text(),
-            'messager' : self.messager.currentText(),
-            'phone_msg' : self.phone_msg.text(),
-            'workpath' : self.workpath.text()
-        }
-        sql = """
-        SELECT * FROM Phones WHERE 
-        name LIKE '%{0}%' AND 
-        family LIKE '%{1}%' AND 
-        phone1 LIKE '%{2}%' AND 
-        phone2 LIKE '%{3}%' AND
-        phone3 LIKE '%{4}%' AND
-        home1 LIKE '%{5}%' AND
-        home2 LIKE '%{6}%' AND
-        work_number LIKE '%{7}%' AND
-        home_path LIKE '%{8}%' AND
-        fax LIKE '%{9}%' AND
-        website LIKE '%{10}%' AND
-        email LIKE '%{11}%' AND
-        messager LIKE '%{12}%' AND
-        phone_msg LIKE '%{13}%' AND
-        workpath LIKE '%{14}%'
-        """.format(
-            datas['name'],
-            datas['family'],
-            datas['phone1'],
-            datas['phone2'],
-            datas['phone3'],
-            datas['home1'],
-            datas['home2'],
-            datas['work_number'],
-            datas['home_path'],
-            datas['fax'],
-            datas['website'],
-            datas['email'],
-            datas['messager'],
-            datas['phone_msg'],
-            datas['workpath']
-        )
-        self.clear_table()
-        self.load_table(sql)
-    
-    @pyqtSlot()
-    def delete_button(self):
-        for index in sorted(self.table.selectionModel().selectedRows()):
-            row = index.row()
-            sql = "DELETE FROM Phones WHERE name LIKE '%{0}%' AND family LIKE '%{1}%' AND phone1 LIKE '%{2}%' AND id = '{3}'".format(
-                self.table.model().data(self.table.model().index(row, 0)),
-                self.table.model().data(self.table.model().index(row, 1)),
-                self.table.model().data(self.table.model().index(row, 2)),
-                self.table.model().data(self.table.model().index(row, 15))
-            )
-            cur = con.cursor()
-            cur.execute(sql)
-        con.commit()
-        self.clear_table()
-        self.load_table('SELECT * FROM Phones')
-    
-    @pyqtSlot()
-    def export(self):
-        self.savefile()
+    }
+    cherrypy.quickstart(App(),'/',conf)
 
-def CreateTable():
-    global con
-    cur = con.cursor()
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS `phones`(
-            name TEXT,
-            family TEXT,
-            phone1 TEXT,
-            phone2 TEXT,
-            phone3 TEXT,
-            home1 TEXT,
-            home2 TEXT,
-            work_number TEXT,
-            home_path TEXT,
-            fax TEXT,
-            website TEXT,
-            email TEXT,
-            messager TEXT,
-            phone_msg TEXT,
-            workpath TEXT,
-            id INTEGER PRIMARY KEY AUTOINCREMENT
-        )
-        ''')
-    return True
-
-def LoadData(sql):
-    cur = con.cursor()
-    cur.execute(sql)
-    return cur.fetchall()
-
-def AddData(values):
-    cur = con.cursor()
-    cur.execute('''
-    INSERT INTO `phones`(name,family,phone1,phone2,phone3,home1,home2,work_number,home_path,fax,website,email,messager,phone_msg,workpath)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ''',values)
-    con.commit()
-    return True
-
-def main():
-    global con
-    con = db.connect('phones.sqlite3')
-    CreateTable()
-    mainApp = QApplication(['دفترچه تلفن'])
-    mainWindow = App()
-    mainWindow.show()
-    mainApp.exec_()
-    con.close()
-
-if __name__ == "__main__" : main()
+if __name__ == "__main__":
+    main()
